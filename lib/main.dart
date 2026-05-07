@@ -1,11 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/mock_data_seeder.dart';
+import 'features/bookmark/data/datasources/local/hive_bookmark_datasource.dart';
+import 'features/bookmark/data/models/bookmark_model.dart';
+import 'features/bookmark/data/repositories/bookmark_repository_impl.dart';
 import 'features/bookmark/presentation/pages/home_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(BookmarkModelAdapter());
+  final box = await Hive.openBox<BookmarkModel>(kBookmarkBox);
+
+  await MockDataSeeder.seedIfEmpty(
+    BookmarkRepositoryImpl(HiveBookmarkDataSource(box)),
+  );
+
   runApp(const ProviderScope(child: App()));
 }
 
