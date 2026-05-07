@@ -47,6 +47,7 @@ dependencies:
 
   # HTTP 요청 (OG 썸네일 추출)
   http: ^1.2.2
+  home_widget: ^0.9.1
 
 dev_dependencies:
   flutter_test:

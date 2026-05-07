@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/widget_update_service.dart';
 import '../../data/datasources/local/hive_bookmark_datasource.dart';
 import '../../data/models/bookmark_model.dart';
 import '../../data/repositories/bookmark_repository_impl.dart';
@@ -44,6 +45,10 @@ final updateBookmarkStatusProvider = Provider<UpdateBookmarkStatus>(
 );
 
 // --- 상태 레이어 ---
+
+final widgetUpdateServiceProvider = Provider<WidgetUpdateService>(
+  (ref) => WidgetUpdateService(ref.watch(bookmarkRepositoryProvider)),
+);
 
 /// 전체 북마크 목록 (active 항목만)
 final bookmarkListProvider = FutureProvider<List<Bookmark>>((ref) {
