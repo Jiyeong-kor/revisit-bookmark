@@ -80,8 +80,6 @@ class MockDataSeeder {
       status: BookmarkStatus.active,
       title: '스크린샷 2026-04-21',
       description: '인스타그램에서 저장한 미니멀 인테리어 레퍼런스',
-      thumbnailPath:
-          'https://picsum.photos/seed/interior/600/400',
       createdAt: _now.subtract(const Duration(days: 8)),
     ),
     Bookmark(
@@ -90,8 +88,6 @@ class MockDataSeeder {
       status: BookmarkStatus.active,
       title: '스크린샷 2026-04-28',
       description: '앱 디자인 레퍼런스 — 카드 UI 레이아웃',
-      thumbnailPath:
-          'https://picsum.photos/seed/appdesign/600/400',
       createdAt: _now.subtract(const Duration(days: 1)),
     ),
 
