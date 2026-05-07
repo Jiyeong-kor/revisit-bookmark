@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -23,16 +21,15 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
-import androidx.glance.layout.width
-import androidx.glance.state.GlanceStateDefinition
-import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import es.antonborri.home_widget.HomeWidgetGlanceState
+import es.antonborri.home_widget.HomeWidgetGlanceStateDefinition
 
 class BookmarkGlanceWidget : GlanceAppWidget() {
 
-    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+    override val stateDefinition = HomeWidgetGlanceStateDefinition()
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent { WidgetContent() }
@@ -40,11 +37,11 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
 
     @Composable
     private fun WidgetContent() {
-        val prefs = currentState<Preferences>()
-        val title = prefs[stringPreferencesKey("widget_title")] ?: ""
-        val type = prefs[stringPreferencesKey("widget_type")] ?: ""
-        val description = prefs[stringPreferencesKey("widget_description")] ?: ""
-        val sourceDomain = prefs[stringPreferencesKey("widget_source_domain")] ?: ""
+        val widgetState = currentState<HomeWidgetGlanceState>()
+        val title = widgetState.preferences.getString("widget_title", "") ?: ""
+        val type = widgetState.preferences.getString("widget_type", "") ?: ""
+        val description = widgetState.preferences.getString("widget_description", "") ?: ""
+        val sourceDomain = widgetState.preferences.getString("widget_source_domain", "") ?: ""
 
         GlanceTheme {
             Box(
@@ -99,7 +96,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         sourceDomain: String,
     ) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
-            // 타입 배지
             val typeLabel = when (type) {
                 "link" -> "🔗 링크"
                 "memo" -> "📝 메모"
@@ -117,7 +113,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
                 Spacer(modifier = GlanceModifier.padding(top = 4.dp))
             }
 
-            // 제목
             Text(
                 text = title,
                 style = TextStyle(
@@ -128,7 +123,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
                 maxLines = 3,
             )
 
-            // 설명 or 출처
             val subtitle = sourceDomain.ifEmpty { description }
             if (subtitle.isNotEmpty()) {
                 Spacer(modifier = GlanceModifier.padding(top = 4.dp))
@@ -144,7 +138,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
 
             Spacer(modifier = GlanceModifier.defaultWeight())
 
-            // 앱 이름
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.End,
