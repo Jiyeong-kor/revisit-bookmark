@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../providers/bookmark_providers.dart';
 import '../widgets/bookmark_card.dart';
 import 'link_save_sheet.dart';
 import 'memo_save_sheet.dart';
+import 'screenshot_save_sheet.dart';
+
+enum _SaveType { link, memo, screenshot }
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -46,14 +50,52 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  void _showSaveOptions(BuildContext context) {
-    showModalBottomSheet<void>(
+  Future<void> _showSaveOptions(BuildContext context) async {
+    final type = await showModalBottomSheet<_SaveType>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => const _SaveTypeSheet(),
     );
+
+    if (type == null || !context.mounted) return;
+
+    switch (type) {
+      case _SaveType.link:
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (_) => const LinkSaveSheet(),
+        );
+      case _SaveType.memo:
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (_) => const MemoSaveSheet(),
+        );
+      case _SaveType.screenshot:
+        final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+        if (image != null && context.mounted) {
+          showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (_) => ScreenshotSaveSheet(imagePath: image.path),
+          );
+        }
+    }
   }
 }
 
@@ -90,36 +132,21 @@ class _SaveTypeSheet extends StatelessWidget {
               icon: Icons.link_rounded,
               label: '링크',
               description: 'URL과 썸네일을 저장해요',
-              onTap: () {
-                Navigator.of(context).pop();
-                showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (_) => const LinkSaveSheet(),
-                );
-              },
+              onTap: () => Navigator.of(context).pop(_SaveType.link),
+            ),
+            const SizedBox(height: 8),
+            _SaveOptionTile(
+              icon: Icons.image_outlined,
+              label: '스크린샷',
+              description: '갤러리에서 이미지를 가져와요',
+              onTap: () => Navigator.of(context).pop(_SaveType.screenshot),
             ),
             const SizedBox(height: 8),
             _SaveOptionTile(
               icon: Icons.edit_note_rounded,
               label: '메모',
               description: '짧은 텍스트 메모를 저장해요',
-              onTap: () {
-                Navigator.of(context).pop();
-                showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  useSafeArea: true,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  builder: (_) => const MemoSaveSheet(),
-                );
-              },
+              onTap: () => Navigator.of(context).pop(_SaveType.memo),
             ),
           ],
         ),
