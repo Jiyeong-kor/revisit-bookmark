@@ -10,20 +10,22 @@ jobs:
   ci:
     name: Analyze, Test & Build
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: 코드 체크아웃
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.3.1
 
       - name: Flutter 설치
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: '3.41.9'
           channel: 'stable'
           cache: true
 
       - name: Gradle 캐시
-        uses: actions/cache@v4
+        uses: actions/cache@v4.3.0
         with:
           path: |
             ~/.gradle/caches
