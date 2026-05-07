@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -42,6 +44,7 @@ class _MemoSaveSheetState extends ConsumerState<MemoSaveSheet> {
 
     await ref.read(saveBookmarkProvider).call(bookmark);
     ref.invalidate(bookmarkListProvider);
+    unawaited(ref.read(widgetUpdateServiceProvider).refresh());
 
     if (mounted) Navigator.of(context).pop();
   }

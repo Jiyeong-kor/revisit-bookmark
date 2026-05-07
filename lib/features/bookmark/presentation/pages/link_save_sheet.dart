@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import 'dart:async';
+
 import '../../data/services/og_metadata_service.dart';
 import '../../domain/entities/bookmark.dart';
 import '../../domain/entities/og_metadata.dart';
@@ -83,6 +85,7 @@ class _LinkSaveSheetState extends ConsumerState<LinkSaveSheet> {
 
     await ref.read(saveBookmarkProvider).call(bookmark);
     ref.invalidate(bookmarkListProvider);
+    unawaited(ref.read(widgetUpdateServiceProvider).refresh());
 
     if (mounted) Navigator.of(context).pop();
   }
