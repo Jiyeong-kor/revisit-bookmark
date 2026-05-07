@@ -88,6 +88,27 @@ internal fun maxItemsForHeight(heightDp: Float): Int = when {
     else -> 1
 }
 
+// ── 비트맵 유틸 ──────────────────────────────────────────────────────────────
+
+/**
+ * 위젯 메모리 한도(~15MB) 초과를 막기 위해 [maxWidth]×[maxHeight] 이내로 다운샘플링해 로드.
+ * inSampleSize는 2의 거듭제곱으로만 설정 가능하므로 목표 크기보다 약간 클 수 있다.
+ */
+@VisibleForTesting
+internal fun loadScaledBitmap(path: String, maxWidth: Int, maxHeight: Int): android.graphics.Bitmap? {
+    if (path.isEmpty()) return null
+    return try {
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(path, opts)
+        var sampleSize = 1
+        while (opts.outWidth / (sampleSize * 2) >= maxWidth ||
+               opts.outHeight / (sampleSize * 2) >= maxHeight) {
+            sampleSize *= 2
+        }
+        BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sampleSize })
+    } catch (e: Exception) { null }
+}
+
 // ── GlanceAppWidget ──────────────────────────────────────────────────────────
 
 class BookmarkGlanceWidget : GlanceAppWidget() {
@@ -145,11 +166,9 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
 
     @Composable
     private fun FullScreenshotContent(item: WidgetItem) {
-        val bitmap = try {
-            if (item.thumbnailLocalPath.isNotEmpty())
-                BitmapFactory.decodeFile(item.thumbnailLocalPath)
-            else null
-        } catch (e: Exception) { null }
+        val bitmap = if (item.thumbnailLocalPath.isNotEmpty())
+            loadScaledBitmap(item.thumbnailLocalPath, maxWidth = 1024, maxHeight = 1024)
+        else null
 
         if (bitmap != null) {
             Image(
@@ -224,11 +243,7 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
     @Composable
     private fun ItemContent(item: WidgetItem, singleItem: Boolean) {
         if (item.type == "link" && singleItem && item.thumbnailLocalPath.isNotEmpty()) {
-            val bitmap = try {
-                BitmapFactory.decodeFile(item.thumbnailLocalPath)
-            } catch (_) {
-                null
-            }
+            val bitmap = loadScaledBitmap(item.thumbnailLocalPath, maxWidth = 600, maxHeight = 200)
             if (bitmap != null) {
                 Image(
                     provider = ImageProvider(bitmap),
