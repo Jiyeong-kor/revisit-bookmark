@@ -52,9 +52,11 @@ class WidgetUpdateService {
     final items = <Map<String, String>>[];
     for (final b in bookmarks) {
       final thumbnailLocalPath = switch (b.type) {
-        // 스크린샷: 로컬 경로 직접 사용 (모든 아이템)
-        BookmarkType.screenshot => b.thumbnailPath ?? '',
-        // 링크: 첫 번째 아이템만 OG 이미지
+        // 스크린샷: 로컬 파일 경로만 사용 (HTTP URL은 로컬 파일이 아니므로 제외)
+        BookmarkType.screenshot => _isLocalPath(b.thumbnailPath)
+            ? b.thumbnailPath!
+            : '',
+        // 링크: 첫 번째 아이템만 OG 이미지 (다운로드 완료된 로컬 경로)
         BookmarkType.link =>
           (b == firstLink) ? (firstLinkThumbnail ?? '') : '',
         // 메모: 이미지 없음
@@ -76,6 +78,9 @@ class WidgetUpdateService {
 
     await HomeWidget.saveWidgetData<String>('widget_items', jsonEncode(items));
   }
+
+  static bool _isLocalPath(String? path) =>
+      path != null && path.isNotEmpty && !path.startsWith('http');
 
   /// 링크 OG 이미지(URL)를 로컬에 다운로드 후 경로 반환.
   /// 이미 로컬 경로면 그대로 반환.
