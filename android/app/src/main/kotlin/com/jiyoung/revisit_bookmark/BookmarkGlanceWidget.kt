@@ -1,15 +1,17 @@
 package com.jiyoung.revisit_bookmark
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
@@ -42,13 +44,20 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         val type = widgetState.preferences.getString("widget_type", "") ?: ""
         val description = widgetState.preferences.getString("widget_description", "") ?: ""
         val sourceDomain = widgetState.preferences.getString("widget_source_domain", "") ?: ""
+        val url = widgetState.preferences.getString("widget_url", "") ?: ""
+
+        val clickAction = if (type == "link" && url.isNotEmpty()) {
+            actionStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } else {
+            actionStartActivity<MainActivity>()
+        }
 
         GlanceTheme {
             Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
                     .background(GlanceTheme.colors.surface)
-                    .clickable(actionStartActivity<MainActivity>())
+                    .clickable(clickAction)
                     .padding(16.dp),
                 contentAlignment = Alignment.TopStart,
             ) {
@@ -107,29 +116,40 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
                     text = typeLabel,
                     style = TextStyle(
                         color = GlanceTheme.colors.primary,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                     ),
                 )
-                Spacer(modifier = GlanceModifier.padding(top = 4.dp))
+                Spacer(modifier = GlanceModifier.padding(top = 6.dp))
             }
 
             Text(
                 text = title,
                 style = TextStyle(
                     color = GlanceTheme.colors.onSurface,
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                 ),
-                maxLines = 3,
+                maxLines = 4,
             )
 
-            val subtitle = sourceDomain.ifEmpty { description }
-            if (subtitle.isNotEmpty()) {
-                Spacer(modifier = GlanceModifier.padding(top = 4.dp))
+            if (description.isNotEmpty()) {
+                Spacer(modifier = GlanceModifier.padding(top = 6.dp))
                 Text(
-                    text = subtitle,
+                    text = description,
                     style = TextStyle(
                         color = GlanceTheme.colors.secondary,
+                        fontSize = 12.sp,
+                    ),
+                    maxLines = 3,
+                )
+            }
+
+            if (sourceDomain.isNotEmpty()) {
+                Spacer(modifier = GlanceModifier.padding(top = 4.dp))
+                Text(
+                    text = sourceDomain,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.outline,
                         fontSize = 11.sp,
                     ),
                     maxLines = 1,

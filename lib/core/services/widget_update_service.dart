@@ -34,5 +34,6 @@ class WidgetUpdateService {
       'widget_source_domain',
       bookmark?.sourceDomain ?? '',
     );
+    await HomeWidget.saveWidgetData<String>('widget_url', bookmark?.url ?? '');
   }
 }
