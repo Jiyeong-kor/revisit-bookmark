@@ -42,6 +42,14 @@ android {
 dependencies {
     implementation("androidx.glance:glance-appwidget:1.1.0")
     implementation("androidx.glance:glance-material3:1.1.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20231013")
+
+    androidTestImplementation("androidx.glance:glance-testing:1.1.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.1")
+    androidTestImplementation("androidx.test:rules:1.6.1")
 }
 
 flutter {

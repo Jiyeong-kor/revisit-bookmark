@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,56 @@ import es.antonborri.home_widget.HomeWidgetGlanceState
 import es.antonborri.home_widget.HomeWidgetGlanceStateDefinition
 import org.json.JSONArray
 
+// ── 데이터 모델 ──────────────────────────────────────────────────────────────
+
+/** 위젯에 표시되는 북마크 아이템. 테스트에서 직접 생성할 수 있도록 internal. */
+internal data class WidgetItem(
+    val title: String,
+    val type: String,
+    val description: String,
+    val url: String,
+    val sourceDomain: String,
+    val thumbnailLocalPath: String,
+)
+
+// ── 순수 함수 (JVM 단위 테스트 대상) ────────────────────────────────────────
+
+/**
+ * JSON 배열 문자열 → WidgetItem 리스트 변환.
+ * [maxCount]만큼 잘라서 반환하며, 파싱 실패 시 빈 리스트를 반환한다.
+ */
+@VisibleForTesting
+internal fun parseItems(json: String, maxCount: Int): List<WidgetItem> =
+    try {
+        val array = JSONArray(json)
+        (0 until minOf(maxCount, array.length())).map { i ->
+            val obj = array.getJSONObject(i)
+            WidgetItem(
+                title = obj.optString("title"),
+                type = obj.optString("type"),
+                description = obj.optString("description"),
+                url = obj.optString("url"),
+                sourceDomain = obj.optString("sourceDomain"),
+                thumbnailLocalPath = obj.optString("thumbnailLocalPath"),
+            )
+        }
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+/**
+ * 위젯 높이(dp)에 따라 표시할 최대 아이템 수를 반환한다.
+ */
+@VisibleForTesting
+internal fun maxItemsForHeight(heightDp: Float): Int = when {
+    heightDp >= 490f -> 4
+    heightDp >= 360f -> 3
+    heightDp >= 240f -> 2
+    else -> 1
+}
+
+// ── GlanceAppWidget ──────────────────────────────────────────────────────────
+
 class BookmarkGlanceWidget : GlanceAppWidget() {
 
     companion object {
@@ -56,51 +107,16 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         provideContent { WidgetContent() }
     }
 
-    private data class WidgetItem(
-        val title: String,
-        val type: String,
-        val description: String,
-        val url: String,
-        val sourceDomain: String,
-        val thumbnailLocalPath: String,
-    )
-
-    private fun parseItems(json: String, maxCount: Int): List<WidgetItem> {
-        return try {
-            val array = JSONArray(json)
-            (0 until minOf(maxCount, array.length())).map { i ->
-                val obj = array.getJSONObject(i)
-                WidgetItem(
-                    title = obj.optString("title"),
-                    type = obj.optString("type"),
-                    description = obj.optString("description"),
-                    url = obj.optString("url"),
-                    sourceDomain = obj.optString("sourceDomain"),
-                    thumbnailLocalPath = obj.optString("thumbnailLocalPath"),
-                )
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
     @Composable
     private fun WidgetContent() {
         val widgetState = currentState<HomeWidgetGlanceState>()
         val size = LocalSize.current
 
-        val maxItems = when {
-            size.height >= 490.dp -> 4
-            size.height >= 360.dp -> 3
-            size.height >= 240.dp -> 2
-            else -> 1
-        }
-
+        val maxItems = maxItemsForHeight(size.height.value)
         val itemsJson = widgetState.preferences.getString("widget_items", "[]") ?: "[]"
         val items = parseItems(itemsJson, maxItems)
 
         GlanceTheme {
-            // 스크린샷이 선택된 경우: 전체 화면을 이미지로 채움
             val screenshotItem = items.find { it.type == "screenshot" }
             when {
                 items.isEmpty() ->
@@ -127,7 +143,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         }
     }
 
-    // 스크린샷: 위젯 전체를 이미지로 꽉 채움
     @Composable
     private fun FullScreenshotContent(item: WidgetItem) {
         val bitmap = try {
@@ -155,13 +170,7 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         }
     }
 
-    // 루트 Column 자식 수 (4개 아이템 기준):
-    // index=0: Column(item) = 1
-    // index=1: Box(divider) + Column(item) = 2  → 누계 3
-    // index=2: Box(divider) + Column(item) = 2  → 누계 5
-    // index=3: Box(divider) + Column(item) = 2  → 누계 7
-    // Spacer = 1 → 누계 8
-    // Row   = 1 → 누계 9  ✓ (10개 제한 안)
+    // 루트 Column 자식 수 (4개 아이템 기준): 1+2+2+2+1+1 = 9 ✓
     @Composable
     private fun ItemListContent(items: List<WidgetItem>, singleItem: Boolean) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -214,7 +223,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
     // 메모: typeLabel + Spacer + title + Spacer + content = 5 ✓
     @Composable
     private fun ItemContent(item: WidgetItem, singleItem: Boolean) {
-        // 링크: 단일 뷰에서 썸네일을 1칸(55dp) 높이로 표시
         if (item.type == "link" && singleItem && item.thumbnailLocalPath.isNotEmpty()) {
             val bitmap = try {
                 BitmapFactory.decodeFile(item.thumbnailLocalPath)
@@ -247,7 +255,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         }
 
         if (item.type == "memo") {
-            // 메모: 내용 전체 표시 (줄임 없음)
             Text(
                 text = item.title,
                 style = TextStyle(
@@ -264,7 +271,6 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
                 )
             }
         } else {
-            // 링크: 제목 2줄 + 도메인 1줄
             Text(
                 text = item.title,
                 style = TextStyle(
