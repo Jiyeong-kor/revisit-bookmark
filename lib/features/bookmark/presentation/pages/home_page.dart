@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../providers/bookmark_providers.dart';
 import '../widgets/bookmark_card.dart';
+import 'link_save_sheet.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -30,7 +31,7 @@ class HomePage extends ConsumerWidget {
             return const _EmptyState();
           }
           return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            padding: const EdgeInsets.only(top: 8, bottom: 88),
             itemCount: bookmarks.length,
             itemBuilder: (_, index) =>
                 BookmarkCard(bookmark: bookmarks[index]),
@@ -38,11 +39,21 @@ class HomePage extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: 저장 흐름 진입점
-        },
+        onPressed: () => _showSaveOptions(context),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  void _showSaveOptions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const LinkSaveSheet(),
     );
   }
 }
