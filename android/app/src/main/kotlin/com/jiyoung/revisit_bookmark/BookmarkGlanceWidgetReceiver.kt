@@ -1,8 +1,7 @@
 package com.jiyoung.revisit_bookmark
 
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import es.antonborri.home_widget.HomeWidgetGlanceWidgetReceiver
 
-class BookmarkGlanceWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = BookmarkGlanceWidget()
+class BookmarkGlanceWidgetReceiver : HomeWidgetGlanceWidgetReceiver<BookmarkGlanceWidget>() {
+    override val glanceAppWidget = BookmarkGlanceWidget()
 }
