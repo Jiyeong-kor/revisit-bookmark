@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/services/share_intent_service.dart';
+import 'core/services/widget_update_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/mock_data_seeder.dart';
 import 'features/bookmark/data/datasources/local/hive_bookmark_datasource.dart';
@@ -19,9 +22,11 @@ void main() async {
   Hive.registerAdapter(BookmarkModelAdapter());
   final box = await Hive.openBox<BookmarkModel>(kBookmarkBox);
 
-  await MockDataSeeder.seedIfEmpty(
-    BookmarkRepositoryImpl(HiveBookmarkDataSource(box)),
-  );
+  final repository = BookmarkRepositoryImpl(HiveBookmarkDataSource(box));
+  await MockDataSeeder.seedIfEmpty(repository);
+
+  // 앱 시작 시 위젯 데이터 초기화 (앱을 재설치해도 기존 북마크가 위젯에 표시됨)
+  unawaited(WidgetUpdateService(repository).refresh());
 
   runApp(const ProviderScope(child: App()));
 }
