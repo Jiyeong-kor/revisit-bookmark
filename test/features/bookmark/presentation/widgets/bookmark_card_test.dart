@@ -56,6 +56,49 @@ void main() {
     });
   });
 
+  group('BookmarkCard 탭 동작', () {
+    testWidgets('링크 카드의 InkWell은 onTap이 설정되어 있다', (tester) async {
+      await tester.pumpWidget(
+        buildCard(makeBookmark(type: BookmarkType.link, url: 'https://example.com')),
+      );
+      final inkWell = tester.widget<InkWell>(find.byType(InkWell));
+      expect(inkWell.onTap, isNotNull);
+    });
+
+    testWidgets('스크린샷 카드의 InkWell은 onTap이 설정되어 있다', (tester) async {
+      await tester.pumpWidget(
+        buildCard(makeBookmark(type: BookmarkType.screenshot)),
+      );
+      final inkWell = tester.widget<InkWell>(find.byType(InkWell));
+      expect(inkWell.onTap, isNotNull);
+    });
+
+    testWidgets('메모 카드의 InkWell은 onTap이 null이다 (탭 불가)', (tester) async {
+      await tester.pumpWidget(
+        buildCard(makeBookmark(type: BookmarkType.memo)),
+      );
+      final inkWell = tester.widget<InkWell>(find.byType(InkWell));
+      expect(inkWell.onTap, isNull);
+    });
+
+    testWidgets('url이 없는 링크 카드는 탭 시 예외 없이 처리된다', (tester) async {
+      await tester.pumpWidget(
+        buildCard(makeBookmark(type: BookmarkType.link, url: null)),
+      );
+      await tester.tap(find.byType(InkWell));
+      await tester.pump();
+    });
+
+    testWidgets('스크린샷 카드에 thumbnailPath가 없으면 탭 시 아무 것도 하지 않는다',
+        (tester) async {
+      await tester.pumpWidget(
+        buildCard(makeBookmark(type: BookmarkType.screenshot, thumbnailPath: null)),
+      );
+      await tester.tap(find.byType(InkWell));
+      await tester.pump();
+    });
+  });
+
   group('BookmarkCard 썸네일', () {
     testWidgets('thumbnailPath가 null이면 이미지 영역이 없다', (tester) async {
       await tester.pumpWidget(
