@@ -19,6 +19,7 @@ class WidgetUpdateService {
 
   Future<void> refresh() async {
     final allActive = await _repository.getAll(status: BookmarkStatus.active);
+    debugPrint('[Widget] active bookmarks: ${allActive.length}');
     final items = _selectItems(allActive, 4);
 
     if (items.isNotEmpty) {
@@ -46,7 +47,10 @@ class WidgetUpdateService {
 
   Future<void> _writeWidgetData(List<Bookmark> bookmarks) async {
     final items = await buildItems(bookmarks);
-    await HomeWidget.saveWidgetData<String>('widget_items', jsonEncode(items));
+    final encoded = jsonEncode(items);
+    debugPrint('[Widget] saving widget_items (${items.length} items): $encoded');
+    final ok = await HomeWidget.saveWidgetData<String>('widget_items', encoded);
+    debugPrint('[Widget] saveWidgetData result: $ok');
   }
 
   /// 위젯에 저장할 아이템 목록을 생성한다.
