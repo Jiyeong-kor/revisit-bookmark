@@ -26,7 +26,9 @@ void main() async {
   await MockDataSeeder.seedIfEmpty(repository);
 
   // 앱 시작 시 위젯 데이터 초기화 (앱을 재설치해도 기존 북마크가 위젯에 표시됨)
-  unawaited(WidgetUpdateService(repository).refresh());
+  WidgetUpdateService(repository).refresh().catchError((Object e, StackTrace s) {
+    debugPrint('[Widget] refresh failed: $e\n$s');
+  });
 
   runApp(const ProviderScope(child: App()));
 }

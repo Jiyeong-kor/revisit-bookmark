@@ -38,6 +38,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import es.antonborri.home_widget.HomeWidgetGlanceState
 import es.antonborri.home_widget.HomeWidgetGlanceStateDefinition
+import android.util.Log
 import org.json.JSONArray
 
 // ── 데이터 모델 ──────────────────────────────────────────────────────────────
@@ -135,7 +136,9 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
 
         val maxItems = maxItemsForHeight(size.height.value)
         val itemsJson = widgetState.preferences.getString("widget_items", "[]") ?: "[]"
+        Log.d("BookmarkWidget", "widget_items raw: $itemsJson")
         val items = parseItems(itemsJson, maxItems)
+        Log.d("BookmarkWidget", "parsed ${items.size} items, maxItems=$maxItems")
 
         GlanceTheme {
             val screenshotItem = items.find { it.type == "screenshot" }
