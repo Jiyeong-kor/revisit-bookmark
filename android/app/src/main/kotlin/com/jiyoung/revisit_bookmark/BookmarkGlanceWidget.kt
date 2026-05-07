@@ -42,11 +42,10 @@ import org.json.JSONArray
 class BookmarkGlanceWidget : GlanceAppWidget() {
 
     companion object {
-        // 4x2: 1개, 4x3: 2개, 4x4: 3개, 4x5+: 4개
-        private val SMALL  = DpSize(160.dp, 110.dp)
-        private val MEDIUM = DpSize(160.dp, 240.dp)
-        private val LARGE  = DpSize(160.dp, 360.dp)
-        private val XLARGE = DpSize(160.dp, 490.dp)
+        private val SMALL  = DpSize(160.dp, 110.dp)  // 4x2: 1개
+        private val MEDIUM = DpSize(160.dp, 240.dp)  // 4x3: 2개
+        private val LARGE  = DpSize(160.dp, 360.dp)  // 4x4: 3개
+        private val XLARGE = DpSize(160.dp, 490.dp)  // 4x5+: 4개
     }
 
     override val stateDefinition = HomeWidgetGlanceStateDefinition()
@@ -101,23 +100,62 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         val items = parseItems(itemsJson, maxItems)
 
         GlanceTheme {
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .background(GlanceTheme.colors.surface)
-                    .padding(16.dp),
-                contentAlignment = Alignment.TopStart,
-            ) {
-                if (items.isEmpty()) {
-                    EmptyContent()
-                } else {
-                    ItemListContent(items = items, singleItem = maxItems == 1)
-                }
+            // 스크린샷이 선택된 경우: 전체 화면을 이미지로 채움
+            val screenshotItem = items.find { it.type == "screenshot" }
+            when {
+                items.isEmpty() ->
+                    Box(
+                        modifier = GlanceModifier.fillMaxSize()
+                            .background(GlanceTheme.colors.surface)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.TopStart,
+                    ) { EmptyContent() }
+
+                screenshotItem != null ->
+                    FullScreenshotContent(screenshotItem)
+
+                else ->
+                    Box(
+                        modifier = GlanceModifier.fillMaxSize()
+                            .background(GlanceTheme.colors.surface)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.TopStart,
+                    ) {
+                        ItemListContent(items = items, singleItem = maxItems == 1)
+                    }
             }
         }
     }
 
-    // 루트 Column 자식 수 계산 (4개 아이템 기준):
+    // 스크린샷: 위젯 전체를 이미지로 꽉 채움
+    @Composable
+    private fun FullScreenshotContent(item: WidgetItem) {
+        val bitmap = try {
+            if (item.thumbnailLocalPath.isNotEmpty())
+                BitmapFactory.decodeFile(item.thumbnailLocalPath)
+            else null
+        } catch (e: Exception) { null }
+
+        if (bitmap != null) {
+            Image(
+                provider = ImageProvider(bitmap),
+                contentDescription = null,
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .clickable(actionStartActivity<MainActivity>()),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Box(
+                modifier = GlanceModifier.fillMaxSize()
+                    .background(GlanceTheme.colors.surface)
+                    .padding(16.dp),
+                contentAlignment = Alignment.TopStart,
+            ) { EmptyContent() }
+        }
+    }
+
+    // 루트 Column 자식 수 (4개 아이템 기준):
     // index=0: Column(item) = 1
     // index=1: Box(divider) + Column(item) = 2  → 누계 3
     // index=2: Box(divider) + Column(item) = 2  → 누계 5
@@ -152,7 +190,7 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
                         )
                         .clickable(clickAction),
                 ) {
-                    ItemContent(item = item, showThumbnail = singleItem)
+                    ItemContent(item = item, singleItem = singleItem)
                 }
             }
 
@@ -171,10 +209,13 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
     }
 
     // ItemContent Column 자식 수 (최대):
-    // Image + Spacer + typeLabel + Spacer + title + Spacer + subtitle = 7 ✓
+    // 링크+썸네일: Image + Spacer + typeLabel + Spacer + title + Spacer + subtitle = 7 ✓
+    // 링크(썸네일 없음): typeLabel + Spacer + title + Spacer + subtitle = 5 ✓
+    // 메모: typeLabel + Spacer + title + Spacer + content = 5 ✓
     @Composable
-    private fun ItemContent(item: WidgetItem, showThumbnail: Boolean) {
-        if (showThumbnail && item.thumbnailLocalPath.isNotEmpty()) {
+    private fun ItemContent(item: WidgetItem, singleItem: Boolean) {
+        // 링크: 단일 뷰에서 썸네일을 1칸(55dp) 높이로 표시
+        if (item.type == "link" && singleItem && item.thumbnailLocalPath.isNotEmpty()) {
             val bitmap = try {
                 BitmapFactory.decodeFile(item.thumbnailLocalPath)
             } catch (_) {
@@ -184,7 +225,7 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
                 Image(
                     provider = ImageProvider(bitmap),
                     contentDescription = null,
-                    modifier = GlanceModifier.fillMaxWidth().height(110.dp),
+                    modifier = GlanceModifier.fillMaxWidth().height(55.dp),
                     contentScale = ContentScale.Crop,
                 )
                 Spacer(modifier = GlanceModifier.padding(top = 8.dp))
@@ -205,24 +246,43 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
             Spacer(modifier = GlanceModifier.padding(top = 4.dp))
         }
 
-        Text(
-            text = item.title,
-            style = TextStyle(
-                color = GlanceTheme.colors.onSurface,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-            ),
-            maxLines = if (showThumbnail && item.thumbnailLocalPath.isNotEmpty()) 2 else 3,
-        )
-
-        val subtitle = item.sourceDomain.ifEmpty { item.description }
-        if (subtitle.isNotEmpty()) {
-            Spacer(modifier = GlanceModifier.padding(top = 3.dp))
+        if (item.type == "memo") {
+            // 메모: 내용 전체 표시 (줄임 없음)
             Text(
-                text = subtitle,
-                style = TextStyle(color = GlanceTheme.colors.secondary, fontSize = 11.sp),
-                maxLines = 1,
+                text = item.title,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
             )
+            if (item.description.isNotEmpty()) {
+                Spacer(modifier = GlanceModifier.padding(top = 3.dp))
+                Text(
+                    text = item.description,
+                    style = TextStyle(color = GlanceTheme.colors.secondary, fontSize = 11.sp),
+                )
+            }
+        } else {
+            // 링크: 제목 2줄 + 도메인 1줄
+            Text(
+                text = item.title,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSurface,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                maxLines = 2,
+            )
+            val subtitle = item.sourceDomain.ifEmpty { item.description }
+            if (subtitle.isNotEmpty()) {
+                Spacer(modifier = GlanceModifier.padding(top = 3.dp))
+                Text(
+                    text = subtitle,
+                    style = TextStyle(color = GlanceTheme.colors.secondary, fontSize = 11.sp),
+                    maxLines = 1,
+                )
+            }
         }
     }
 

@@ -44,33 +44,44 @@ class WidgetUpdateService {
   }
 
   Future<void> _writeWidgetData(List<Bookmark> bookmarks) async {
-    // 첫 번째 아이템의 썸네일만 로컬 경로로 변환 (1-item view에서만 표시)
-    final thumbnailPath = bookmarks.isNotEmpty
-        ? await _resolveLocalThumbnail(bookmarks.first)
-        : null;
+    // 링크 OG 이미지: 첫 번째 링크 아이템만 다운로드
+    final firstLink = bookmarks.where((b) => b.type == BookmarkType.link).firstOrNull;
+    final firstLinkThumbnail =
+        firstLink != null ? await _resolveRemoteThumbnail(firstLink) : null;
 
     final items = <Map<String, String>>[];
-    for (int i = 0; i < bookmarks.length; i++) {
-      final b = bookmarks[i];
+    for (final b in bookmarks) {
+      final thumbnailLocalPath = switch (b.type) {
+        // 스크린샷: 로컬 경로 직접 사용 (모든 아이템)
+        BookmarkType.screenshot => b.thumbnailPath ?? '',
+        // 링크: 첫 번째 아이템만 OG 이미지
+        BookmarkType.link =>
+          (b == firstLink) ? (firstLinkThumbnail ?? '') : '',
+        // 메모: 이미지 없음
+        BookmarkType.memo => '',
+      };
+
       items.add({
         'title': b.title,
         'type': b.type.name,
-        'description': b.description ?? b.content ?? '',
+        // 메모는 전체 본문, 링크는 OG description
+        'description': b.type == BookmarkType.memo
+            ? (b.content ?? b.description ?? '')
+            : (b.description ?? ''),
         'url': b.url ?? '',
         'sourceDomain': b.sourceDomain ?? '',
-        'thumbnailLocalPath': i == 0 ? (thumbnailPath ?? '') : '',
+        'thumbnailLocalPath': thumbnailLocalPath,
       });
     }
 
     await HomeWidget.saveWidgetData<String>('widget_items', jsonEncode(items));
   }
 
-  /// 스크린샷: 로컬 경로 그대로 반환
-  /// 링크 OG 이미지(URL): 로컬에 다운로드 후 경로 반환
-  Future<String?> _resolveLocalThumbnail(Bookmark bookmark) async {
+  /// 링크 OG 이미지(URL)를 로컬에 다운로드 후 경로 반환.
+  /// 이미 로컬 경로면 그대로 반환.
+  Future<String?> _resolveRemoteThumbnail(Bookmark bookmark) async {
     final path = bookmark.thumbnailPath;
     if (path == null || path.isEmpty) return null;
-
     if (!path.startsWith('http')) return path;
 
     try {
