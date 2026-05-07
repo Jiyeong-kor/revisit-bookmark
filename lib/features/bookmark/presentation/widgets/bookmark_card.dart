@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/bookmark.dart';
@@ -77,20 +79,35 @@ class _Thumbnail extends StatelessWidget {
 
   const _Thumbnail({required this.url});
 
+  bool get _isLocalPath => url.startsWith('/') || url.startsWith('file://');
+
   @override
   Widget build(BuildContext context) {
+    final errorWidget = Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(
+        Icons.broken_image_outlined,
+        color: Theme.of(context).colorScheme.outline,
+      ),
+    );
+
+    if (_isLocalPath) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Image.file(
+          File(url),
+          fit: BoxFit.cover,
+          errorBuilder: (context, e, stack) => errorWidget,
+        ),
+      );
+    }
+
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Image.network(
         url,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-        ),
+        errorBuilder: (context, e, stack) => errorWidget,
         loadingBuilder: (_, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Container(
