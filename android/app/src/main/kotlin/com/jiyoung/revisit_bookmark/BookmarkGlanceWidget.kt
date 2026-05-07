@@ -9,9 +9,10 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.appwidget.action.actionStartActivity as actionStartActivityWithIntent
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
@@ -47,7 +48,7 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         val url = widgetState.preferences.getString("widget_url", "") ?: ""
 
         val clickAction = if (type == "link" && url.isNotEmpty()) {
-            actionStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            actionStartActivityWithIntent(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } else {
             actionStartActivity<MainActivity>()
         }
