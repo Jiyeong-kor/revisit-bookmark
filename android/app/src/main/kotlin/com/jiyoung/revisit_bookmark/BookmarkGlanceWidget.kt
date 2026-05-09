@@ -141,7 +141,7 @@ class BookmarkGlanceWidget : GlanceAppWidget() {
         Log.d("BookmarkWidget", "parsed ${items.size} items, maxItems=$maxItems")
 
         GlanceTheme {
-            val screenshotItem = items.find { it.type == "screenshot" && it.thumbnailLocalPath.isNotEmpty() }
+            val screenshotItem = items.find { it.type == "screenshot" }
             when {
                 items.isEmpty() ->
                     Box(
