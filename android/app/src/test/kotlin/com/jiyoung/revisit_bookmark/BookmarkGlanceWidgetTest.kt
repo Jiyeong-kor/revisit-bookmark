@@ -102,6 +102,59 @@ class ParseItemsTest {
     }
 }
 
+/**
+ * screenshotItem 선택 조건 테스트:
+ * items.find { it.type == "screenshot" && it.thumbnailLocalPath.isNotEmpty() }
+ *
+ * - 썸네일 있는 스크린샷 → screenshotItem != null → FullScreenshotContent 분기
+ * - 썸네일 없는 스크린샷 → screenshotItem == null → ItemListContent 분기 (빈 상태 방지)
+ */
+class ScreenshotItemSelectionTest {
+
+    private fun makeItem(type: String, thumbnailLocalPath: String) = WidgetItem(
+        title = "제목", type = type, description = "", url = "", sourceDomain = "",
+        thumbnailLocalPath = thumbnailLocalPath,
+    )
+
+    @Test
+    fun `썸네일 있는 스크린샷은 screenshotItem으로 선택된다`() {
+        val items = listOf(
+            makeItem("memo", ""),
+            makeItem("screenshot", "/data/app/widget_thumb.jpg"),
+        )
+        val screenshotItem = items.find { it.type == "screenshot" && it.thumbnailLocalPath.isNotEmpty() }
+        assertEquals("/data/app/widget_thumb.jpg", screenshotItem?.thumbnailLocalPath)
+    }
+
+    @Test
+    fun `썸네일 없는 스크린샷은 screenshotItem으로 선택되지 않는다`() {
+        val items = listOf(
+            makeItem("link", ""),
+            makeItem("screenshot", ""),   // thumbnailLocalPath 비어있음
+        )
+        val screenshotItem = items.find { it.type == "screenshot" && it.thumbnailLocalPath.isNotEmpty() }
+        assertEquals(null, screenshotItem)
+    }
+
+    @Test
+    fun `스크린샷 없이 링크·메모만 있으면 screenshotItem은 null이다`() {
+        val items = listOf(makeItem("link", ""), makeItem("memo", ""))
+        val screenshotItem = items.find { it.type == "screenshot" && it.thumbnailLocalPath.isNotEmpty() }
+        assertEquals(null, screenshotItem)
+    }
+
+    @Test
+    fun `여러 스크린샷 중 썸네일 있는 첫 번째만 선택된다`() {
+        val items = listOf(
+            makeItem("screenshot", ""),                      // 썸네일 없음 → 무시
+            makeItem("screenshot", "/first/thumb.jpg"),     // 썸네일 있음 → 선택
+            makeItem("screenshot", "/second/thumb.jpg"),    // 두 번째는 선택 안 됨
+        )
+        val screenshotItem = items.find { it.type == "screenshot" && it.thumbnailLocalPath.isNotEmpty() }
+        assertEquals("/first/thumb.jpg", screenshotItem?.thumbnailLocalPath)
+    }
+}
+
 class MaxItemsForHeightTest {
 
     @Test
